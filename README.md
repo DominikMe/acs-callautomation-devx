@@ -14,4 +14,4 @@ This async/await pattern creates a sticky client-server relationship. If your se
 1. Run `ngrok http https://localhost:7072` from a console, and note the ngrok url
 1. Fill out the `appsettings.json` with your Communication resource connection string, the owned phone number, the ngrok url as BaseUrl, and the communication identity
 1. Build and run the solution, which will open up the Swagger UI
-1. Use the Swagger UI's "Try it" and post against the /`current/run` route with your (US or Canada) phone number in E.164 format or against the `/eventAwaiter/run` route.
+1. Use the Swagger UI's "Try it out" and post against the /`current/run` route with your (US or Canada) phone number in E.164 format or against the `/eventAwaiter/run` route. The newest API proposal can be found under `/implicitEvents/run`

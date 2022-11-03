@@ -4,9 +4,9 @@ using Azure.Messaging;
 
 namespace CallAutomation.DevX
 {
-	public static class WithEventAwaiter
+	public static class WithEventsImplicit
 	{
-		public static void AddEventAwaiter(this WebApplication app)
+		public static void AddImplicitEventHandling(this WebApplication app)
 		{
 			Uri question = new("https://storageaccountacsbob523.blob.core.windows.net/public-files/question.wav");
 			Uri rightAnswer = new("https://storageaccountacsbob523.blob.core.windows.net/public-files/rightAnswer.wav");
@@ -15,12 +15,12 @@ namespace CallAutomation.DevX
 			var baseUrl = app.Configuration["BaseUrl"];
 			var applicationId = app.Configuration["CommunicationIdentity"];
 
-			app.MapPost("/eventAwaiter/events", (CloudEvent[] cloudEvents, CallAutomationClient callAutomationClient) =>
+			app.MapPost("/implicitEvents/events", (CloudEvent[] cloudEvents, CallAutomationClient callAutomationClient) =>
 				callAutomationClient.ProcessEvents(cloudEvents));
 
-			app.MapPost("/eventAwaiter/run", async (CallAutomationClient callAutomationClient, string targetNumber) =>
+			app.MapPost("/implicitEvents/run", async (CallAutomationClient callAutomationClient, string targetNumber) =>
 			{
-				var createCall = await callAutomationClient.CreateCallAsync__(
+				var callConnected = await callAutomationClient.CreateCallAsync_(
 					new CreateCallOptions(
 						new CallSource(
 							new CommunicationUserIdentifier(applicationId))
@@ -28,25 +28,22 @@ namespace CallAutomation.DevX
 							CallerId = new PhoneNumberIdentifier(appNumber)
 						},
 						new CommunicationIdentifier[] { new PhoneNumberIdentifier(targetNumber) },
-						new Uri($"{baseUrl}/eventAwaiter/events")));
-				var callConnected = await createCall.WaitForEventAsync();
+						new Uri($"{baseUrl}/implicitEvents/events")));
 
 				var callMedia = callAutomationClient
 							.GetCallConnection(callConnected.CallConnectionId)
 							.GetCallMedia();
 
-				var recognize = await callMedia.StartRecognizingAsync__(new CallMediaRecognizeDtmfOptions(new PhoneNumberIdentifier(targetNumber), 10)
-				{
-					InitialSilenceTimeout = TimeSpan.FromSeconds(10),
-					InterruptPrompt = true,
-					InterruptCallMediaOperation = true,
-					Prompt = new FileSource(question)
-				});
-
 				var success = false;
 				try
 				{
-					var recognizeCompleted = await recognize.WaitForEventAsync();
+					var recognizeCompleted = await callMedia.StartRecognizingAsync_(new CallMediaRecognizeDtmfOptions(new PhoneNumberIdentifier(targetNumber), 10)
+					{
+						InitialSilenceTimeout = TimeSpan.FromSeconds(10),
+						InterruptPrompt = true,
+						InterruptCallMediaOperation = true,
+						Prompt = new FileSource(question)
+					});
 					var expectedTones = new[] { DtmfTone.Four, DtmfTone.Two, DtmfTone.Pound };
 
 					if (expectedTones.SequenceEqual(recognizeCompleted.CollectTonesResult.Tones))
@@ -60,12 +57,10 @@ namespace CallAutomation.DevX
 				}
 				finally
 				{
-					var play = await callMedia.PlayToAllAsync__(success ? new FileSource(rightAnswer) : new FileSource(wrongAnswer));
-					var playCompleted = await play.WaitForEventAsync();
-					var callDisconnected = await (await callAutomationClient
+					var playCompleted = await callMedia.PlayToAllAsync_(success ? new FileSource(rightAnswer) : new FileSource(wrongAnswer));
+					var callDisconnected = await callAutomationClient
 							.GetCallConnection(callConnected.CallConnectionId)
-							.HangUpAsync__(true))
-							.WaitForEventAsync();
+							.HangUpAsync_(true);
 					Console.WriteLine($"Finished flow for phone number {targetNumber}");
 				}
 			});

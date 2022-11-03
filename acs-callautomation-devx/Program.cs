@@ -19,5 +19,6 @@ app.UseHttpsRedirection();
 
 app.AddCurrentApproach();
 app.AddEventAwaiter();
+app.AddImplicitEventHandling();
 
 app.Run();
